@@ -62,31 +62,34 @@
     $(function(){
       // Initially set the button to disabled
       $('#chg-balloon-submit').attr('disabled', 'disabled').addClass('btn-disabled');
-      var sug = [];
+
+      // This array lists the suggestions provided to user
+      var finalSuggestions = [];
+
       //  This method provides valid suggestions given a username
       // The method uses the Chance.js library to generate 3 usernames
       // These usernames are then checked against the API to see if they are valid
       function GetValidSuggestions(username) {
-        console.log(sug);
         // Generate 3 usernames
-        // var suggestions = [username + "_" + chance.word(), username + "_" + chance.word(), username + "_" + chance.word()];
-        var suggestions = [];
-        var initial;
-        if(sug.length === 0) {
-          initial = 1;
+        var currentSuggestions = [];
+
+        // This block tells how many suggestions to create
+        // If there are already valid suggestions, we create only the remaining ones
+        var initialValue;
+        if(finalSuggestions.length === 0) {
+          initialValue = 1;
         } else {
-          initial = sug.length;
+          initialValue = finalSuggestions.length;
         }
-
-        for(i = initial; i <= 3; i++) {
-          suggestions.push(username + "_" + chance.word());
+        // Actually create the suggestions
+        // Uses chance.js to create random words
+        for(i = initialValue; i <= 3; i++) {
+          currentSuggestions.push(username + "_" + chance.word());
         }
-
-        console.log(suggestions);
 
         // Form the query with the usernames
         var query = "/internship-challenge/api/user/?username=";
-        suggestions.forEach(function(uname, index){
+        currentSuggestions.forEach(function(uname, index){
           if(index === suggestions.length - 1) {
             query += uname;
           } else {
@@ -96,29 +99,37 @@
 
         // Check against the API if the usernames are valid
         $.ajax(query).done(function(data){
-          // If the usernames are valid, the length will be 0
+          // If all the usernames are valid, the length will be 0
           if(data.length == 0) {
             // Show the list to the user
             $('#suggestions').show().html('');
             $('#suggestionText').hide();
             $('#suggestions').append('The following usernames are available<br />');
-            sug.forEach(function(value){
+            finalSuggestions.forEach(function(value){
               $('#suggestions').append('<p class="sugText">' + value + '</p><br />');
             });
           } else {
-            // Make further requests. Generate fresh usernames and check against API
+            // If length of data is not 0, at least 1 username is not valid
+            // We will store the valid usernames, and query again for remaining usernames
             $('#suggestionText').show();
 
+            // This block creates an array of all the usernames which are present
             var returnedValues = data.map(function(value){
               return value.username;
             });
-            var usernamesNotPresent = suggestions.filter(function(value){
+
+            // In this block, find the suggestions which are not present in the array returned above
+            // The suggestions which are not present are valid suggestions
+            var usernamesNotPresent = currentSuggestions.filter(function(value){
               return (returnedValues.indexOf(value) === -1);
             });
+
+            // Push the valid suggestions to the finalSuggestions array
             usernamesNotPresent.forEach(function(value){
-              sug.push(value);
+              finalSuggestions.push(value);
             });
-            console.log(sug);
+
+            // Generate further suggestions and query the API for valid suggestions
             GetValidSuggestions(username);
           }
         })
@@ -154,9 +165,9 @@
               $('#suggestionText').text('Loading suggestions...');
               $('#err').removeClass('validUsername').addClass('invalidUsername');
               // Give suggestions
-              sug = [];
+              // Initialize final suggestions to blank
+              finalSuggestions = [];
               GetValidSuggestions(inputText);
-
             } else {
               // Means the username is available
               $('#err').text(inputText + ' is available');
