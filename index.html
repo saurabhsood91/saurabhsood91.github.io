@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="http://chegg-tutors.appspot.com/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/public/styles.css" />
+    <script type="text/javascript" src="http://chancejs.com/chance.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <style>
+    .invalidUsername {
+      color: red;
+      float: left;
+    }
+    .validUsername {
+      color: green;
+      float: left;
+    }
+    .btn-disabled {
+      cursor: not-allowed !important;
+    }
+
+    .suggestions {
+      float: left;
+    }
+
+    .sugText {
+      float: left;
+      margin: 0;
+      color: green;
+    }
+
+    #err {
+      float: left;
+      color: red;
+    }
+
+    #suggestionText {
+      padding: 0;
+      margin: 0 !important;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="chg-balloon-logo-container">
+        <img src="/public/img/logo.png" />
+    </div>
+    <div id="chg-balloon-controls-container">
+        <p>Enter a username to get started!</p>
+        <input id="chg-balloon-input" maxlength="2048" placeholder="e.g. BalloonMaster99"
+            name="username" autocomplete="off" type="text" value="" />
+        <button id="chg-balloon-submit">Check availability</button> <br />
+        <span id="err"></span><br />
+        <p id="suggestionText">
+        </p>
+        <div class="suggestions" id="suggestions">
+
+        </div>
+    </div>
+
+    <script type="text/javascript">
+
+    $(function(){
+      // Initially set the button to disabled
+      $('#chg-balloon-submit').attr('disabled', 'disabled').addClass('btn-disabled');
+
+      //  This method provides valid suggestions given a username
+      // The method uses the Chance.js library to generate 3 usernames
+      // These usernames are then checked against the API to see if they are valid
+      function GetValidSuggestions(username) {
+        // Generate 3 usernames
+        var suggestions = [username + "_" + chance.word(), username + "_" + chance.word(), username + "_" + chance.word()];
+
+        // Form the query with the usernames
+        var query = "/internship-challenge/api/user/?username=";
+        suggestions.forEach(function(uname, index){
+          if(index === suggestions.length - 1) {
+            query += uname;
+          } else {
+            query += uname + ',';
+          }
+        });
+
+        // Check against the API if the usernames are valid
+        $.ajax(query).done(function(data){
+          // If the usernames are valid, the length will be 0
+          if(data.length == 0) {
+            // Show the list to the user
+            $('#suggestions').show().html('');
+            $('#suggestionText').hide();
+            $('#suggestions').append('The following usernames are available<br />');
+            suggestions.forEach(function(value){
+              $('#suggestions').append('<p class="sugText">' + value + '</p><br />');
+            });
+          } else {
+            // Make further requests. Generate fresh usernames and check against API
+            $('#suggestionText').show();
+            GetValidSuggestions(username);
+          }
+        })
+        .fail(function(err){
+          // If the request fails for some reason, show an error message
+          $('#err').text('Error processing the request');
+        });
+      }
+
+      // Check for valid input
+      function isValidInput(str){
+       return !/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/g.test(str);
+      }
+
+      // Handles the click event of the button
+      $("#chg-balloon-submit").click(function() {
+          // Initially hide the suggestions
+          $('#suggestions').hide();
+          // Get rid of trailing spaces
+          var inputText = $('#chg-balloon-input').val().trim();
+
+          if(!isValidInput(inputText)) {
+            $('#err').text('Enter valid input');
+            return;
+          }
+          // For each inputted username, construct the query
+          var query = "/internship-challenge/api/user/?username=" + inputText;
+          // Make the query
+          $.ajax(query).done(function(data){
+            if(data.length == 1) {
+              // Means username is not available
+              $('#err').text(inputText + ' is not available');
+              $('#suggestionText').text('Loading suggestions...');
+              $('#err').removeClass('validUsername').addClass('invalidUsername');
+              // Give suggestions
+              GetValidSuggestions(inputText);
+
+            } else {
+              // Means the username is available
+              $('#err').text(inputText + ' is available');
+              $('#err').removeClass('invalidUsername').addClass('validUsername');
+            }
+          })
+          .fail(function(err){
+            // Show an error message in case there is some error in making the request
+            $('#err').text('Error processing the request');
+          });
+      });
+
+      // Handles the keyup event on the textbox
+      // If there is no text entered, disable the button
+      $('#chg-balloon-input').keyup(function(){
+        // Get inputted text and check the length
+        var text = $('#chg-balloon-input').val();
+        if(text.length == 0) {
+          $('#chg-balloon-submit').attr('disabled', 'disabled').addClass('btn-disabled');
+        } else {
+          $('#chg-balloon-submit').removeAttr('disabled').removeClass('btn-disabled');
+        }
+      });
+    }());
+
+    </script>
+
+  </body>
+</html>
