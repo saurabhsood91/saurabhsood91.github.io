@@ -62,13 +62,27 @@
     $(function(){
       // Initially set the button to disabled
       $('#chg-balloon-submit').attr('disabled', 'disabled').addClass('btn-disabled');
-
+      var sug = [];
       //  This method provides valid suggestions given a username
       // The method uses the Chance.js library to generate 3 usernames
       // These usernames are then checked against the API to see if they are valid
       function GetValidSuggestions(username) {
+        console.log(sug);
         // Generate 3 usernames
-        var suggestions = [username + "_" + chance.word(), username + "_" + chance.word(), username + "_" + chance.word()];
+        // var suggestions = [username + "_" + chance.word(), username + "_" + chance.word(), username + "_" + chance.word()];
+        var suggestions = [];
+        var initial;
+        if(sug.length === 0) {
+          initial = 1;
+        } else {
+          initial = sug.length;
+        }
+
+        for(i = initial; i <= 3; i++) {
+          suggestions.push(username + "_" + chance.word());
+        }
+
+        console.log(suggestions);
 
         // Form the query with the usernames
         var query = "/internship-challenge/api/user/?username=";
@@ -88,12 +102,23 @@
             $('#suggestions').show().html('');
             $('#suggestionText').hide();
             $('#suggestions').append('The following usernames are available<br />');
-            suggestions.forEach(function(value){
+            sug.forEach(function(value){
               $('#suggestions').append('<p class="sugText">' + value + '</p><br />');
             });
           } else {
             // Make further requests. Generate fresh usernames and check against API
             $('#suggestionText').show();
+
+            var returnedValues = data.map(function(value){
+              return value.username;
+            });
+            var usernamesNotPresent = suggestions.filter(function(value){
+              return (returnedValues.indexOf(value) === -1);
+            });
+            usernamesNotPresent.forEach(function(value){
+              sug.push(value);
+            });
+            console.log(sug);
             GetValidSuggestions(username);
           }
         })
@@ -129,6 +154,7 @@
               $('#suggestionText').text('Loading suggestions...');
               $('#err').removeClass('validUsername').addClass('invalidUsername');
               // Give suggestions
+              sug = [];
               GetValidSuggestions(inputText);
 
             } else {
