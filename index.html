@@ -78,7 +78,7 @@
         if(finalSuggestions.length === 0) {
           initialValue = 1;
         } else {
-          initialValue = finalSuggestions.length;
+          initialValue = finalSuggestions.length + 1;
         }
         // Actually create the suggestions
         // Uses chance.js to create random words
@@ -89,7 +89,7 @@
         // Form the query with the usernames
         var query = "/internship-challenge/api/user/?username=";
         currentSuggestions.forEach(function(uname, index){
-          if(index === suggestions.length - 1) {
+          if(index === currentSuggestions.length - 1) {
             query += uname;
           } else {
             query += uname + ',';
@@ -100,6 +100,10 @@
         $.ajax(query).done(function(data){
           // If all the usernames are valid, the length will be 0
           if(data.length == 0) {
+            // Put the suggestions into finalSuggestions array
+            currentSuggestions.forEach(function(value){
+              finalSuggestions.push(value);
+            });
             // Show the list to the user
             $('#suggestions').show().html('');
             $('#suggestionText').hide();
